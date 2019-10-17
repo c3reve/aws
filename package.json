@@ -1,6 +1,6 @@
 {
   "name": "@c3reve/aws",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "aws-sdk wrapper",
   "main": "index.js",
   "scripts": {

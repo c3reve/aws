@@ -13,16 +13,28 @@ module.exports = class AwsSES {
 
   /**
    * メール送信
-   * @param {array} toAddresses 送信先アドレス
+   * @param {object} addresses 送信先アドレス
    * @param {string} subject 表題
    * @param {string} body 内容
    */
-  async sendMail(toAddresses, subject, body, options = { isHtml: false }) {
+  async sendMail(addresses = {}, subject, body, options = { isHtml: false }) {
     const Body = {};
+    const destination = {};
+
+    if (addresses.to) {
+      destination.ToAddresses = (addresses.to instanceof Array) ? addresses.to : [addresses.to];
+    }
+    if (addresses.cc) {
+      destination.CcAddresses = (addresses.cc instanceof Array) ? addresses.cc : [addresses.cc];
+    }
+    if (addresses.bcc) {
+      destination.BccAddresses = (addresses.bcc instanceof Array) ? addresses.bcc : [addresses.bcc];
+    }
+
     Body[options.isHtml ? 'Html' : 'Text'] = { Data: body, Charset: 'utf-8' };
     return this.ses.sendEmail({
       Source: this.config.sourceAddress,
-      Destination: { ToAddresses: toAddresses },
+      Destination: destination,
       Message: {
         Subject: { Data: subject, Charset: 'utf-8' },
         Body,
@@ -32,14 +44,14 @@ module.exports = class AwsSES {
 
   /**
    * テンプレートメール送信
-   * @param {array} toAddresses 送信先アドレス
+   * @param {object} addresses 送信先アドレス
    * @param {string} templateName テンプレート名
    * @param {*} prams パラメータ
    * @description
    * `templateName`に指定したファイルの拡張子が.htmlの場合はHTMLメールを送信します。
    * HTMLメールの場合は<title>タグがsubjectとなり、それ以外はファイルの1行目が`subject:`で始まっていれば:以降をsubjectとします。
    */
-  async sendMailTemplate(toAddresses, templateName, prams = {}) {
+  async sendMailTemplate(addresses, templateName, prams = {}) {
     const htmlRegExp = new RegExp('.html$');
     const isHtml = htmlRegExp.test(templateName);
 
@@ -67,11 +79,11 @@ module.exports = class AwsSES {
       const matchTexts = text.match(/^subject:.+/);
       if (matchTexts) {
         subject = matchTexts[0].replace('subject:', '');
-        text = text.replace(/^subject:.+\n/, '');
+        text = text.replace(/^subject:.+(\n|\r\n)/, '');
       }
     }
 
     // メール送信
-    return this.sendMail(toAddresses, subject, text, { isHtml });
+    return this.sendMail(addresses, subject, text, { isHtml });
   }
 }
